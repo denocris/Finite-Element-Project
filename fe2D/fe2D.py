@@ -104,7 +104,6 @@ if __name__ == "__main__":
 
     ufem = solver2D(degree, dim)
 
-    #print ufem
 
     # ------------- Plotting -----------------
     cheb = lf.chebyshev_nodes(degree+1)
