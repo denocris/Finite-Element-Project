@@ -1,6 +1,7 @@
 from numpy import *
 from numpy.polynomial.legendre import leggauss
 from mpl_toolkits.mplot3d import Axes3D
+from pylab import *
 import lagfunc as lf
 
 
@@ -109,10 +110,11 @@ if __name__ == "__main__":
     cheb = lf.chebyshev_nodes(degree+1)
 
     X, Y = meshgrid(cheb,cheb)
-
     sol_fe = ufem.reshape((degree+1,degree+1))
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-
     ax.plot_surface(X,Y,sol_fe)
+    plt.show()
+
+    # -------------------------------------------------
