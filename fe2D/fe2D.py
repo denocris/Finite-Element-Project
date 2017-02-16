@@ -5,7 +5,7 @@ from pylab import *
 import lagfunc as lf
 
 
-def solver2D(degree, dim):
+def solver2D(degree, dim, my_f):
     cheb = lf.chebyshev_nodes(degree+1) #Lista nodi chebichev
 
     n = degree + 1 # Dim poly space
@@ -89,9 +89,8 @@ def solver2D(degree, dim):
 
     # -------------------------------------------------
 
-    myf_test = lambda x,y: (2*(pi**2) + 1)*cos(pi*y)*cos(pi*x)
 
-    rhs = einsum('iq, q, q -> i', VqVq, W, myf_test(lpoint_x,lpoint_y)) #inserita
+    rhs = einsum('iq, q, q -> i', VqVq, W, my_f(lpoint_x,lpoint_y)) #inserita
 
     # -------------------------------------------------
 
@@ -102,18 +101,23 @@ if __name__ == "__main__":
     dim = 2 # space dim of the problem
     degree = 3 # degree of polynomial bases
 
-    ufem = solver2D(degree, dim)
+    # Let us pick up this function to test our solver
+
+    u_exact = lambda x,y: cos(pi*x)*cos(pi*y)
+    my_f = lambda x,y: (2*(pi**2) + 1)*cos(pi*y)*cos(pi*x)
+
+    u_fem = solver2D(degree, dim, my_f)
 
 
-    # ------------- Plotting -----------------
+    # --------- Plotting Finite Element Solution --------
     cheb = lf.chebyshev_nodes(degree+1)
 
     X, Y = meshgrid(cheb,cheb)
-    sol_fe = ufem.reshape((degree+1,degree+1))
+    u_fem = u_fem.reshape((degree+1,degree+1))
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X,Y,sol_fe)
+    ax.plot_surface(X,Y,u_fem)
     plt.show()
 
     # -------------------------------------------------
