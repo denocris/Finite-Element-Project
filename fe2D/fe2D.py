@@ -1,17 +1,7 @@
-#%matplotlib inline
-#from pylab import *
-
-
 from numpy import *
 from numpy.polynomial.legendre import leggauss
 import lagfunc as lf
 
-
-#--------------------------------------------------------------------
-
-
-
-#--------------------------------------------------------------------
 
 def solver2D(degree, dim):
     cheb = lf.chebyshev_nodes(degree+1) #Lista nodi chebichev
