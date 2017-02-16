@@ -6,7 +6,7 @@ from numpy import *
 from numpy.polynomial.legendre import leggauss
 import lagfunc as lf
 
-#___
+
 #--------------------------------------------------------------------
 
 
