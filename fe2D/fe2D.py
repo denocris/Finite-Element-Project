@@ -89,12 +89,22 @@ def solver2D(degree, dim, my_f):
 
     # -------------------------------------------------
 
-
     rhs = einsum('iq, q, q -> i', VqVq, W, my_f(lpoint_x,lpoint_y)) #inserita
 
     # -------------------------------------------------
 
-    return linalg.solve((A + M), rhs)
+    u_fe = linalg.solve((A + M), rhs)
+
+    Vcheb = zeros((n, len(cheb)))
+
+    for j in range(degree + 1):
+        Vcheb[j] = V[j](cheb)
+
+    C = einsum('is, jk -> skij', Vcheb, Vcheb)
+
+    sol = einsum('skij, ij', C, u_fe.reshape(n, n))
+
+    return sol.reshape(n**2,)
 
 if __name__ == "__main__":
 
@@ -109,7 +119,8 @@ if __name__ == "__main__":
     u_fem = solver2D(degree, dim, my_f)
 
 
-    # --------- Plotting Finite Element Solution --------
+    #--------- Plotting Finite Element Solution --------
+
     cheb = lf.chebyshev_nodes(degree+1)
 
     X, Y = meshgrid(cheb,cheb)
@@ -118,6 +129,29 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.plot_surface(X,Y,u_fem)
-    plt.show()
+    #plt.show()
 
-    # -------------------------------------------------
+    # --------------- Error Computation ---------------------
+
+    #max_err = []
+    L2_err = []
+
+    for deg in range(2,20):
+        u_ext_chebp = []
+
+        cheb = lf.chebyshev_nodes(deg+1)
+
+        u_fem = solver2D(deg, dim, my_f)
+
+        for i in cheb:
+            for j in cheb:
+                u_ext_chebp.append(u_exact(i,j))
+
+        #max_err.append(linalg.norm(u_ext_chebp - u_fem, ord=inf))
+        L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
+        print "---------------------------------"
+
+
+    fig = plt.figure()
+    plt.semilogy(range(2,20), L2_err)
+    plt.show()

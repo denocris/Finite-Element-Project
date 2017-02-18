@@ -1,37 +1,25 @@
 
 from numpy import *
 from numpy.polynomial.polynomial import *
+from numpy.polynomial.chebyshev import chebgauss
 
 
-
-def chebyshev_nodes(x):
-    cheb = [0.5*cos((2*(i+1)-1)*pi/(2*x)) + 0.5 for i in range(x)]
-    cheb = array(cheb)
+def chebyshev_nodes(num_nodes):
+    #cheb = [0.5*cos((2*(i+1)-1)*pi/(2*x)) + 0.5 for i in range(num_nodes)]
+    #cheb = array(cheb)
+    cheb = 0.5 * chebgauss(num_nodes)[0] + 0.5
     return sort(cheb)
 
-def lagrange_basis(xi, i):
-    def func(x):
-        assert i<len(xi) and i>=0, 'Out of range: 0 < i < len(xi)'
-        ret = 1;
-        for xj in xi[range(i)+range(i+1,len(xi))]:
-            p = (x-xj)/(xi[i]-xj)
-            ret *= p
-        return ret
-    return func
 
-def lagrange_basis_derivatives(xi, i):
-    def func(x):
-        deriv_sum=0
-        assert i<len(xi) and i>=0, 'Out of range: 0 < i < len(xi)'
-        ret = 1;
-        for xj in xi[range(i)+range(i+1,len(xi))]:
-            p = ((x-xj)/(xi[i]-xj))
-            ret *= p
-        for xj in xi[range(i)+range(i+1,len(xi))]:
-            deriv_sum += 1./(x-xj)
-        ret *= deriv_sum
-        return ret
-    return func
+def lagrange_basis(q,i):
+    n = len(q)
+    L = Polynomial.fromroots([xj for xj in q if xj != q[i]])
+    L = L * ( 1 / L(q[i]) )
+    return L
+
+def lagrange_basis_derivatives(q,i):
+    L_deriv = lagrange_basis(q,i).deriv()
+    return L_deriv
 
 def lagrange_function(v,lag_base):
     def func(x):
