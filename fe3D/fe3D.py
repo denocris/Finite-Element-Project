@@ -59,64 +59,67 @@ def solver2D(degree, dim, my_f):
         Vq[i] = V[i](q)
         Vpq[i] = V_prime[i](q)
 
-    VqVq   = einsum('ij,kl -> ikjl', Vq,  Vq)
-    VqVpq  = einsum('ij,kl -> ikjl', Vq,  Vpq)
-    VpqVq  = einsum('ij,kl -> ikjl', Vpq, Vq)
-    VpqVpq = einsum('ij,kl -> ikjl', Vpq, Vpq)
+    VVV    = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vq)
+    VVVp   = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vpq)
+    VVpV   = einsum('ij,kl,nm -> inkljm', Vq, Vpq, Vq)
+    VpVV   = einsum('ij,kl,nm -> inkljm', Vpq, Vq, Vq)
+    VpVpVp = einsum('ij,kl,nm -> inkljm', Vpq, Vpq, Vpq)
 
+    VVV  = reshape(VVV,  (prod(VVV.shape[:dim]),  prod(VVV.shape[dim:])))
+    VVVp = reshape(VVVp, (prod(VVVp.shape[:dim]), prod(VVVp.shape[dim:])))
+    VVpV = reshape(VVpV, (prod(VVpV.shape[:dim]), prod(VVpV.shape[dim:])))
+    VpVV = reshape(VpVV, (prod(VpVV.shape[:dim]), prod(VpVV.shape[dim:])))
 
-    VqVq   = reshape(VqVq,   (prod(VqVq.shape[:dim]),   prod(VqVq.shape[dim:])))
-    VqVpq  = reshape(VqVpq,  (prod(VqVpq.shape[:dim]),  prod(VqVpq.shape[dim:])))
-    VpqVq  = reshape(VpqVq,  (prod(VpqVq.shape[:dim]),  prod(VpqVq.shape[dim:])))
-    VpqVpq = reshape(VpqVpq, (prod(VpqVpq.shape[:dim]), prod(VpqVpq.shape[dim:])))
-
-    W = einsum('i,j->ij',w,w)
+    W = einsum('i,j,k -> ijk', w, w, w)
     W = reshape(W, (prod(W.shape[:dim])))
 
+    latticeq_points = np.array([[[[qx,qy,qz] for qz in q] for qy in q ] for qx in q])
+    latticeq_points = latticeq_points.reshape(len(q)*len(q)*len(q),dim)
 
-    latticeq_points = array([[[qx,qy] for qy in q] for qx in q ])
-    latticeq_points = latticeq_points.reshape(len(q)*len(q),2)
-
-    lpoint_x = array([latticeq_points[i,0] for i in range(len(latticeq_points))])
-    lpoint_y = array([latticeq_points[i,1] for i in range(len(latticeq_points))])
-
-    # -------------------------------------------------
-
-    A = einsum('jq, iq, q -> ij', VqVpq, VqVpq, W)
-    A += einsum('jq, iq, q -> ij', VpqVq, VpqVq, W)
-
-    M = einsum('jq, iq, q -> ij', VqVq, VqVq, W)
+    lpoint_x = np.array([latticeq_points[i,0] for i in range(len(latticeq_points))])
+    lpoint_y = np.array([latticeq_points[i,1] for i in range(len(latticeq_points))])
+    lpoint_z = np.array([latticeq_points[i,2] for i in range(len(latticeq_points))])
 
     # -------------------------------------------------
 
-    rhs = einsum('iq, q, q -> i', VqVq, W, my_f(lpoint_x,lpoint_y)) #inserita
+    A = einsum('jq, iq, q -> ij', VVVp, VVVp, W)
+    A += einsum('jq, iq, q -> ij', VVpV, VVpV, W)
+    A += einsum('jq, iq, q -> ij', VpVV, VpVV, W)
+
+    M = einsum('jq, iq, q -> ij', VVV, VVV, W)
 
     # -------------------------------------------------
 
-    u_fe = linalg.solve((A + M), rhs)
+    rhs = einsum('iq, q, q -> i', VVV, W, my_f(lpoint_x,lpoint_y,lpoint_z))
+
+    # -------------------------------------------------
+
+    u_fe = linalg.solve( A + M, rhs)
 
     Vcheb = zeros((n, len(cheb)))
 
     for j in range(degree + 1):
         Vcheb[j] = V[j](cheb)
 
-    C = einsum('is, jk -> skij', Vcheb, Vcheb)
+    C = einsum('is, jk, nm -> skmijn', Vcheb, Vcheb, Vcheb)
 
-    sol = einsum('skij, ij', C, u_fe.reshape(n, n))
+    sol = einsum('skmijn, ijn', C, u_fe.reshape((n, n, n)))
 
-    return sol.reshape(n**2,)
+    return sol.reshape(n,n,n)
 
 if __name__ == "__main__":
 
-    dim = 2 # space dim of the problem
-    degree = 3 # degree of polynomial bases
+    dim = 3 # space dim of the problem
+    degree = 5 # degree of polynomial bases
 
     # Let us pick up this function to test our solver
 
-    u_exact = lambda x,y: cos(pi*x)*cos(pi*y)
-    my_f = lambda x,y: (2*(pi**2) + 1)*cos(pi*y)*cos(pi*x)
+    u_exact = lambda x,y,z: cos(pi*x)*cos(pi*y)*cos(pi*z)
+    my_f = lambda x,y,z: (3*(pi**2) + 1)*cos(pi*y)*cos(pi*x)*cos(pi*z)
 
     u_fem = solver2D(degree, dim, my_f)
+
+    #print u_fem
 
 
     #--------- Plotting Finite Element Solution --------
@@ -124,34 +127,10 @@ if __name__ == "__main__":
     cheb = lf.chebyshev_nodes(degree+1)
 
     X, Y = meshgrid(cheb,cheb)
-    u_fem = u_fem.reshape((degree+1,degree+1))
+
+    my_col = cm.jet(Z/np.amax(Z))
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X,Y,u_fem)
-    #plt.show()
-
-    # --------------- Error Computation ---------------------
-
-    #max_err = []
-    L2_err = []
-
-    for deg in range(2,20):
-        u_ext_chebp = []
-
-        cheb = lf.chebyshev_nodes(deg+1)
-
-        u_fem = solver2D(deg, dim, my_f)
-
-        for i in cheb:
-            for j in cheb:
-                u_ext_chebp.append(u_exact(i,j))
-
-        #max_err.append(linalg.norm(u_ext_chebp - u_fem, ord=inf))
-        L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
-        print "---------------------------------"
-
-
-    fig = plt.figure()
-    plt.semilogy(range(2,20), L2_err)
+    ax.plot_surface(X,Y,u_fem[:,:,1], cmap=cm.jet)
     plt.show()
