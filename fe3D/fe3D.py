@@ -26,38 +26,14 @@ def solver3D(degree, dim, my_f):
         lag_bas.append(lf.lagrange_basis(cheb,i))
         lag_bas_deriv.append(lf.lagrange_basis_derivatives(cheb,i))
 
-    #--------------------------------------------------------------------
-    #punti dello spazio duale dove vai a calcolare le funzioni di base# dim = degree +1
-    dual_basis_points = linspace(0,1,degree+1)
-
-    for node in dual_basis_points:
-        N.append(lambda f, node=node : f(node))
-
-    #--------------------------------------------------------------------
-
-    # Matrix for the change of variables
-    C = zeros((n,n))
-    for i in range(n):
-        for j in range(n):
-            C[i,j] = N[i](lag_bas[j])
-
-
-    for k in range(n):
-        ei = zeros((n,))
-        ei[k] = 1. # delta_ik
-        vk = linalg.solve(C, ei)
-        V.append(lf.lagrange_function(vk,lag_bas))
-        V_prime.append(lf.lagrange_function(vk,lag_bas_deriv))
-
-    # Now we evaluate all local basis functions and all derivatives of the basis functions at the quadrature points.
 
     Vq = zeros((n, len(q)))
     Vpq = zeros((n, len(q)))
 
     #Le righe di Vq sono le funzioni di base calcolate sui punti di quadratura
     for i in range(n):
-        Vq[i] = V[i](q)
-        Vpq[i] = V_prime[i](q)
+        Vq[i] = lag_bas[i](q)
+        Vpq[i] = lag_bas_deriv[i](q)
 
     VVV    = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vq)
     VVVp   = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vpq)
@@ -99,7 +75,7 @@ def solver3D(degree, dim, my_f):
     Vcheb = zeros((n, len(cheb)))
 
     for j in range(degree + 1):
-        Vcheb[j] = V[j](cheb)
+        Vcheb[j] = lag_bas[j](cheb)
 
     C = einsum('is, jk, nm -> skmijn', Vcheb, Vcheb, Vcheb)
 
@@ -131,20 +107,21 @@ if __name__ == "__main__":
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X,Y,u_fem[:,:,1], cmap=cm.jet)
+    ax.plot_surface(X,Y,u_fem[:,:,0], cmap=cm.jet)
     #plt.show()
 
     # --------------- Error Computation ---------------------
 
     L2_err = []
 
-    for deg in range(2,6):
+    for deg in range(2,14):
         u_ext_chebp = []
 
         cheb = lf.chebyshev_nodes(deg+1)
 
         u_fem = solver3D(deg, dim, my_f)
         u_fem = u_fem.reshape(len(cheb)**3,)
+
 
         for x in cheb:
             for y in cheb:
@@ -155,9 +132,9 @@ if __name__ == "__main__":
 
         #max_err.append(linalg.norm(u_ext_chebp - u_fem, ord=inf))
         L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
-        print "---------------------------------"
+        print "---------------------------------", deg
 
 
     fig = plt.figure()
-    plt.semilogy(range(2,6), L2_err)
+    plt.semilogy(range(2,14), L2_err)
     plt.show()

@@ -21,10 +21,10 @@ def lagrange_basis_derivatives(q,i):
     L_deriv = lagrange_basis(q,i).deriv()
     return L_deriv
 
-def lagrange_function(v,lag_base):
-    def func(x):
-        res=0
-        for i in range(len(v)):
-            res += v[i]*lag_base[i](x)
-        return res
-    return func
+# def lagrange_function(v,lag_base):
+#     def func(x):
+#         res=0
+#         for i in range(len(v)):
+#             res += v[i]*lag_base[i](x)
+#         return res
+#     return func
