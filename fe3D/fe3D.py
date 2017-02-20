@@ -35,18 +35,18 @@ def solver3D(degree, dim, my_f):
         Vq[i] = lag_bas[i](q)
         Vpq[i] = lag_bas_deriv[i](q)
 
-    VVV    = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vq)
-    VVVp   = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vpq)
-    VVpV   = einsum('ij,kl,nm -> inkljm', Vq, Vpq, Vq)
-    VpVV   = einsum('ij,kl,nm -> inkljm', Vpq, Vq, Vq)
-    VpVpVp = einsum('ij,kl,nm -> inkljm', Vpq, Vpq, Vpq)
+    VVV    = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vq, optimize=True)
+    VVVp   = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vpq, optimize=True)
+    VVpV   = einsum('ij,kl,nm -> inkljm', Vq, Vpq, Vq, optimize=True)
+    VpVV   = einsum('ij,kl,nm -> inkljm', Vpq, Vq, Vq, optimize=True)
+    #VpVpVp = einsum('ij,kl,nm -> inkljm', Vpq, Vpq, Vpq, optimize=True)
 
     VVV  = reshape(VVV,  (prod(VVV.shape[:dim]),  prod(VVV.shape[dim:])))
     VVVp = reshape(VVVp, (prod(VVVp.shape[:dim]), prod(VVVp.shape[dim:])))
     VVpV = reshape(VVpV, (prod(VVpV.shape[:dim]), prod(VVpV.shape[dim:])))
     VpVV = reshape(VpVV, (prod(VpVV.shape[:dim]), prod(VpVV.shape[dim:])))
 
-    W = einsum('i,j,k -> ijk', w, w, w)
+    W = einsum('i,j,k -> ijk', w, w, w, optimize=True)
     W = reshape(W, (prod(W.shape[:dim])))
 
     latticeq_points = array([[[[qx,qy,qz] for qz in q] for qy in q ] for qx in q])
@@ -58,15 +58,16 @@ def solver3D(degree, dim, my_f):
 
     # -------------------------------------------------
 
-    A = einsum('jq, iq, q -> ij', VVVp, VVVp, W)
-    A += einsum('jq, iq, q -> ij', VVpV, VVpV, W)
-    A += einsum('jq, iq, q -> ij', VpVV, VpVV, W)
+    A = einsum('jq, iq, q -> ij', VVVp, VVVp, W, optimize=True)
+    A += einsum('jq, iq, q -> ij', VVpV, VVpV, W, optimize=True)
+    A += einsum('jq, iq, q -> ij', VpVV, VpVV, W, optimize=True)
 
-    M = einsum('jq, iq, q -> ij', VVV, VVV, W)
+    M = einsum('jq, iq, q -> ij', VVV, VVV, W, optimize=True)
+
 
     # -------------------------------------------------
 
-    rhs = einsum('iq, q, q -> i', VVV, W, my_f(lpoint_x,lpoint_y,lpoint_z))
+    rhs = einsum('iq, q, q -> i', VVV, W, my_f(lpoint_x,lpoint_y,lpoint_z), optimize=True)
 
     # -------------------------------------------------
 
@@ -77,9 +78,9 @@ def solver3D(degree, dim, my_f):
     for j in range(degree + 1):
         Vcheb[j] = lag_bas[j](cheb)
 
-    C = einsum('is, jk, nm -> skmijn', Vcheb, Vcheb, Vcheb)
+    C = einsum('is, jk, nm -> skmijn', Vcheb, Vcheb, Vcheb, optimize=True)
 
-    sol = einsum('skmijn, ijn', C, u_fe.reshape((n, n, n)))
+    sol = einsum('skmijn, ijn', C, u_fe.reshape((n, n, n)), optimize=True)
 
     return sol.reshape(n,n,n)
 
@@ -114,7 +115,7 @@ if __name__ == "__main__":
 
     L2_err = []
 
-    for deg in range(2,20):
+    for deg in range(2,26):
         u_ext_chebp = []
 
         cheb = lf.chebyshev_nodes(deg+1)
@@ -129,12 +130,11 @@ if __name__ == "__main__":
 
         u_ext_chebp = array(u_ext_chebp)
 
-        #max_err.append(linalg.norm(u_ext_chebp - u_fem, ord=inf))
         L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
         #print "---------------------------------", deg
 
     print L2_err
 
     #fig = plt.figure()
-    #plt.semilogy(range(2,8), L2_err)
+    #plt.semilogy(range(2,16), L2_err)
     #plt.show()
