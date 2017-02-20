@@ -5,7 +5,7 @@ from pylab import *
 import lagfunc as lf
 
 
-def solver2D(degree, dim, my_f):
+def solver3D(degree, dim, my_f):
     cheb = lf.chebyshev_nodes(degree+1) #Lista nodi chebichev
 
     n = degree + 1 # Dim poly space
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     u_exact = lambda x,y,z: cos(pi*x)*cos(pi*y)*cos(pi*z)
     my_f = lambda x,y,z: (3*(pi**2) + 1)*cos(pi*y)*cos(pi*x)*cos(pi*z)
 
-    u_fem = solver2D(degree, dim, my_f)
+    u_fem = solver3D(degree, dim, my_f)
 
     #print u_fem
 
@@ -128,9 +128,36 @@ if __name__ == "__main__":
 
     X, Y = meshgrid(cheb,cheb)
 
-    my_col = cm.jet(Z/np.amax(Z))
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.plot_surface(X,Y,u_fem[:,:,1], cmap=cm.jet)
+    #plt.show()
+
+    # --------------- Error Computation ---------------------
+
+    L2_err = []
+
+    for deg in range(2,6):
+        u_ext_chebp = []
+
+        cheb = lf.chebyshev_nodes(deg+1)
+
+        u_fem = solver3D(deg, dim, my_f)
+        u_fem = u_fem.reshape(len(cheb)**3,)
+
+        for x in cheb:
+            for y in cheb:
+                for z in cheb:
+                    u_ext_chebp.append(u_exact(x,y,z))
+
+        u_ext_chebp = array(u_ext_chebp)
+
+        #max_err.append(linalg.norm(u_ext_chebp - u_fem, ord=inf))
+        L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
+        print "---------------------------------"
+
+
+    fig = plt.figure()
+    plt.semilogy(range(2,6), L2_err)
     plt.show()
