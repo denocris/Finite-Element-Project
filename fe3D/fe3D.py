@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     L2_err = []
 
-    for deg in range(2,18,2):
+    for deg in range(2,8):
         u_ext_chebp = []
 
         cheb = lf.chebyshev_nodes(deg+1)
@@ -133,7 +133,8 @@ if __name__ == "__main__":
         L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
         print "---------------------------------", deg
 
+    #print L2_err
 
     fig = plt.figure()
-    plt.semilogy(range(2,18,2), L2_err)
+    plt.semilogy(range(2,8), L2_err)
     plt.show()
