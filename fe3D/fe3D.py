@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     L2_err = []
 
-    for deg in range(2,8):
+    for deg in range(2,20):
         u_ext_chebp = []
 
         cheb = lf.chebyshev_nodes(deg+1)
