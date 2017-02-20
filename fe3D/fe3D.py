@@ -1,7 +1,7 @@
 from numpy import *
 from numpy.polynomial.legendre import leggauss
-from mpl_toolkits.mplot3d import Axes3D
-from pylab import *
+#from mpl_toolkits.mplot3d import Axes3D
+#from pylab import *
 import lagfunc as lf
 
 
@@ -49,12 +49,12 @@ def solver3D(degree, dim, my_f):
     W = einsum('i,j,k -> ijk', w, w, w)
     W = reshape(W, (prod(W.shape[:dim])))
 
-    latticeq_points = np.array([[[[qx,qy,qz] for qz in q] for qy in q ] for qx in q])
+    latticeq_points = array([[[[qx,qy,qz] for qz in q] for qy in q ] for qx in q])
     latticeq_points = latticeq_points.reshape(len(q)*len(q)*len(q),dim)
 
-    lpoint_x = np.array([latticeq_points[i,0] for i in range(len(latticeq_points))])
-    lpoint_y = np.array([latticeq_points[i,1] for i in range(len(latticeq_points))])
-    lpoint_z = np.array([latticeq_points[i,2] for i in range(len(latticeq_points))])
+    lpoint_x = array([latticeq_points[i,0] for i in range(len(latticeq_points))])
+    lpoint_y = array([latticeq_points[i,1] for i in range(len(latticeq_points))])
+    lpoint_z = array([latticeq_points[i,2] for i in range(len(latticeq_points))])
 
     # -------------------------------------------------
 
@@ -100,14 +100,14 @@ if __name__ == "__main__":
 
     #--------- Plotting Finite Element Solution --------
 
-    cheb = lf.chebyshev_nodes(degree+1)
-
-    X, Y = meshgrid(cheb,cheb)
-
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X,Y,u_fem[:,:,0], cmap=cm.jet)
+    # cheb = lf.chebyshev_nodes(degree+1)
+    #
+    # X, Y = meshgrid(cheb,cheb)
+    #
+    #
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.plot_surface(X,Y,u_fem[:,:,0], cmap=cm.jet)
     #plt.show()
 
     # --------------- Error Computation ---------------------
@@ -133,8 +133,8 @@ if __name__ == "__main__":
         L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
         print "---------------------------------", deg
 
-    #print L2_err
+    print L2_err
 
-    fig = plt.figure()
-    plt.semilogy(range(2,8), L2_err)
-    plt.show()
+    #fig = plt.figure()
+    #plt.semilogy(range(2,8), L2_err)
+    #plt.show()
