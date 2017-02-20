@@ -129,7 +129,6 @@ if __name__ == "__main__":
 
         u_ext_chebp = array(u_ext_chebp)
 
-        #max_err.append(linalg.norm(u_ext_chebp - u_fem, ord=inf))
         L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
         print "---------------------------------", deg
 
