@@ -11,21 +11,22 @@ def chebyshev_nodes(num_nodes):
     return sort(cheb)
 
 def lagrange_basis(nodes, i):
-    nr = arange(len(nodes))
-    d = product([ (nodes[i]-nodes[j]) for j in nr if j != i], axis=0)
+    num = arange(len(nodes))
+    d = product([ (nodes[i]-nodes[j]) for j in num if j != i], axis=0)
     def func(x):
-        L = product([ (x - nodes[j]) for j in nr if j != i], axis=0) / d
+        L = product([ (x - nodes[j]) for j in num if j != i], axis=0) / d
         return L
     return func
 
 def lagrange_basis_derivatives(nodes, i):
-    nr = arange(len(nodes))
-    d = product([ (nodes[i]-nodes[j]) for j in nr if j != i], axis=0)
+    num = arange(len(nodes))
+    d = product([ (nodes[i]-nodes[j]) for j in num if j != i], axis=0)
     def func(x):
-        DL = sum( [ product( [ (x - nodes[j]) for j in nr if (j != i and j != k) ],axis=0) for k in nr if k != i ], axis=0 ) / d
-        return DL
+        L_deriv = sum( [ product( [ (x - nodes[j]) for j in num if (j != i and j != k) ], axis=0) for k in num if k != i ], axis=0 ) / d
+        return L_deriv
     return func
 
+# ------------------------------------------------
 
 # def lagrange_basis(q,i):
 #     n = len(q)
