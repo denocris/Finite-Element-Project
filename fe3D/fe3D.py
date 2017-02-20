@@ -1,7 +1,7 @@
 from numpy import *
 from numpy.polynomial.legendre import leggauss
-from mpl_toolkits.mplot3d import Axes3D
-from pylab import *
+#from mpl_toolkits.mplot3d import Axes3D
+#from pylab import *
 import lagfunc as lf
 
 
@@ -39,7 +39,7 @@ def solver3D(degree, dim, my_f):
     VVVp   = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vpq, optimize=True)
     VVpV   = einsum('ij,kl,nm -> inkljm', Vq, Vpq, Vq, optimize=True)
     VpVV   = einsum('ij,kl,nm -> inkljm', Vpq, Vq, Vq, optimize=True)
-    VpVpVp = einsum('ij,kl,nm -> inkljm', Vpq, Vpq, Vpq, optimize=True)
+    #VpVpVp = einsum('ij,kl,nm -> inkljm', Vpq, Vpq, Vpq, optimize=True)
 
     VVV  = reshape(VVV,  (prod(VVV.shape[:dim]),  prod(VVV.shape[dim:])))
     VVVp = reshape(VVVp, (prod(VVVp.shape[:dim]), prod(VVVp.shape[dim:])))
@@ -63,6 +63,7 @@ def solver3D(degree, dim, my_f):
     A += einsum('jq, iq, q -> ij', VpVV, VpVV, W, optimize=True)
 
     M = einsum('jq, iq, q -> ij', VVV, VVV, W, optimize=True)
+
 
     # -------------------------------------------------
 
@@ -114,7 +115,7 @@ if __name__ == "__main__":
 
     L2_err = []
 
-    for deg in range(2,16):
+    for deg in range(2,26):
         u_ext_chebp = []
 
         cheb = lf.chebyshev_nodes(deg+1)
@@ -134,6 +135,6 @@ if __name__ == "__main__":
 
     print L2_err
 
-    fig = plt.figure()
-    plt.semilogy(range(2,16), L2_err)
-    plt.show()
+    #fig = plt.figure()
+    #plt.semilogy(range(2,16), L2_err)
+    #plt.show()
