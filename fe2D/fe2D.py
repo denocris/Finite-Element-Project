@@ -28,26 +28,26 @@ def solver2D(degree, dim, my_f):
 
     #--------------------------------------------------------------------
     #punti dello spazio duale dove vai a calcolare le funzioni di base# dim = degree +1
-    dual_basis_points = linspace(0,1,degree+1)
-
-    for node in dual_basis_points:
-        N.append(lambda f, node=node : f(node))
+    # dual_basis_points = linspace(0,1,degree+1)
+    #
+    # for node in dual_basis_points:
+    #     N.append(lambda f, node=node : f(node))
 
     #--------------------------------------------------------------------
 
     # Matrix for the change of variables
-    C = zeros((n,n))
-    for i in range(n):
-        for j in range(n):
-            C[i,j] = N[i](lag_bas[j])
-
-
-    for k in range(n):
-        ei = zeros((n,))
-        ei[k] = 1. # delta_ik
-        vk = linalg.solve(C, ei)
-        V.append(lf.lagrange_function(vk,lag_bas))
-        V_prime.append(lf.lagrange_function(vk,lag_bas_deriv))
+    # C = zeros((n,n))
+    # for i in range(n):
+    #     for j in range(n):
+    #         C[i,j] = N[i](lag_bas[j])
+    #
+    #
+    # for k in range(n):
+    #     ei = zeros((n,))
+    #     ei[k] = 1. # delta_ik
+    #     vk = linalg.solve(C, ei)
+    #     V.append(lf.lagrange_function(vk,lag_bas))
+    #     V_prime.append(lf.lagrange_function(vk,lag_bas_deriv))
 
     # Now we evaluate all local basis functions and all derivatives of the basis functions at the quadrature points.
 
@@ -56,8 +56,8 @@ def solver2D(degree, dim, my_f):
 
     #Le righe di Vq sono le funzioni di base calcolate sui punti di quadratura
     for i in range(n):
-        Vq[i] = V[i](q)
-        Vpq[i] = V_prime[i](q)
+        Vq[i] = lag_bas[i](q)
+        Vpq[i] = lag_bas_deriv[i](q)
 
     VqVq   = einsum('ij,kl -> ikjl', Vq,  Vq)
     VqVpq  = einsum('ij,kl -> ikjl', Vq,  Vpq)
@@ -98,7 +98,7 @@ def solver2D(degree, dim, my_f):
     Vcheb = zeros((n, len(cheb)))
 
     for j in range(degree + 1):
-        Vcheb[j] = V[j](cheb)
+        Vcheb[j] = lag_bas[j](cheb)
 
     C = einsum('is, jk -> skij', Vcheb, Vcheb)
 
@@ -125,6 +125,7 @@ if __name__ == "__main__":
 
     X, Y = meshgrid(cheb,cheb)
     u_fem = u_fem.reshape((degree+1,degree+1))
+    print u_fem
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -136,7 +137,7 @@ if __name__ == "__main__":
     #max_err = []
     L2_err = []
 
-    for deg in range(2,20):
+    for deg in range(2,26):
         u_ext_chebp = []
 
         cheb = lf.chebyshev_nodes(deg+1)
@@ -149,9 +150,9 @@ if __name__ == "__main__":
 
         #max_err.append(linalg.norm(u_ext_chebp - u_fem, ord=inf))
         L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
-        print "---------------------------------"
+        print "---------------------------------", deg
 
 
     fig = plt.figure()
-    plt.semilogy(range(2,20), L2_err)
+    plt.semilogy(range(2,26), L2_err)
     plt.show()

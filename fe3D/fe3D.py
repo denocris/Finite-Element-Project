@@ -114,14 +114,13 @@ if __name__ == "__main__":
 
     L2_err = []
 
-    for deg in range(2,14):
+    for deg in range(2,18,2):
         u_ext_chebp = []
 
         cheb = lf.chebyshev_nodes(deg+1)
 
         u_fem = solver3D(deg, dim, my_f)
         u_fem = u_fem.reshape(len(cheb)**3,)
-
 
         for x in cheb:
             for y in cheb:
@@ -136,5 +135,5 @@ if __name__ == "__main__":
 
 
     fig = plt.figure()
-    plt.semilogy(range(2,14), L2_err)
+    plt.semilogy(range(2,18,2), L2_err)
     plt.show()
