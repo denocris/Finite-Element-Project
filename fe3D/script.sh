@@ -3,4 +3,4 @@
 
 cd $PBS_O_WORKDIR
 
-python fe3D.py >> res_26.txt
+python fe3D.py >> res_22.txt
