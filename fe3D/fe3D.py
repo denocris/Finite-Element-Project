@@ -1,7 +1,7 @@
 from numpy import *
 from numpy.polynomial.legendre import leggauss
-#from mpl_toolkits.mplot3d import Axes3D
-#from pylab import *
+from mpl_toolkits.mplot3d import Axes3D
+from pylab import *
 import lagfunc as lf
 
 
@@ -101,21 +101,25 @@ if __name__ == "__main__":
 
     #--------- Plotting Finite Element Solution --------
 
-    # cheb = lf.chebyshev_nodes(degree+1)
-    #
-    # X, Y = meshgrid(cheb,cheb)
-    #
-    #
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    # ax.plot_surface(X,Y,u_fem[:,:,0], cmap=cm.jet)
+    cheby = lf.chebyshev_nodes(degree+1)
+
+    X, Y = meshgrid(cheby,cheby)
+
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = '3d')
+    ax.plot_surface(X, Y, u_fem[:,:,0], cmap = cm.jet)
     #plt.show()
 
     # --------------- Error Computation ---------------------
 
     L2_err = []
 
-    for deg in range(2,22):
+    deg_start = 2
+    deg_end = 6
+    deg_step = 1
+
+    for deg in range(deg_start, deg_end, deg_step):
         u_ext_chebp = []
 
         cheb = lf.chebyshev_nodes(deg+1)
@@ -135,6 +139,10 @@ if __name__ == "__main__":
 
     print L2_err
 
-    #fig = plt.figure()
-    #plt.semilogy(range(2,16), L2_err)
-    #plt.show()
+    plt.figure()
+    plt.title('FR Direct Method - L2 error plot')
+    #plt.semilogy(range(2,6), L2_err)
+    plt.loglog(range(deg_start, deg_end, deg_step), L2_err)
+    plt.xlabel('degree')
+    plt.ylabel('L2 error')
+    plt.show()
