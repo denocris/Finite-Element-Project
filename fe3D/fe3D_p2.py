@@ -4,8 +4,10 @@ from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
 import lagfunc as lf
 
+import scipy.sparse.linalg
 
-def solver3D(degree, dim, my_f):
+
+def solver_cg_preconditioner_3D(degree, dim, my_f):
     cheb = lf.chebyshev_nodes(degree+1) #Lista nodi chebichev
 
     n = degree + 1 # Dim poly space
@@ -17,6 +19,7 @@ def solver3D(degree, dim, my_f):
 
     lag_bas=[]
     lag_bas_deriv=[]
+    N = []
     V = []
     V_prime=[]
 
@@ -67,14 +70,20 @@ def solver3D(degree, dim, my_f):
 
     rhs = einsum('iq, q, q -> i', VVV, W, my_f(lpoint_x,lpoint_y,lpoint_z), optimize=True)
 
-    # -------------------------------------------------
+    # ---------- Iterative Conjugate Gradient ---------------
 
-    u_fe = linalg.solve( A + M, rhs)
+    P = diag( diag(A + M) ) # Preconditioner
+
+    invP = linalg.inv(P)
+
+    u_fe = scipy.sparse.linalg.cg( A + M, rhs, M = invP)
 
     Vcheb = zeros((n, len(cheb)))
 
     for j in range(degree + 1):
         Vcheb[j] = lag_bas[j](cheb)
+
+    u_fe = array(u_fe[0])
 
     C = einsum('is, jk, nm -> skmijn', Vcheb, Vcheb, Vcheb, optimize=True)
 
@@ -92,7 +101,7 @@ if __name__ == "__main__":
     u_exact = lambda x,y,z: cos(pi*x)*cos(pi*y)*cos(pi*z)
     my_f = lambda x,y,z: (3*(pi**2) + 1)*cos(pi*y)*cos(pi*x)*cos(pi*z)
 
-    u_fem = solver3D(degree, dim, my_f)
+    u_fem = solver_cg_preconditioner_3D(degree, dim, my_f)
 
     #print u_fem
 
@@ -122,7 +131,7 @@ if __name__ == "__main__":
 
         cheb = lf.chebyshev_nodes(deg+1)
 
-        u_fem = solver3D(deg, dim, my_f)
+        u_fem = solver_cg_preconditioner_3D(deg, dim, my_f)
         u_fem = u_fem.reshape(len(cheb)**3,)
 
         for x in cheb:
@@ -138,7 +147,7 @@ if __name__ == "__main__":
     print L2_err
 
     plt.figure()
-    plt.title('FE Direct Method - L2 error plot')
+    plt.title('FE Iteractive Method - L2 error plot')
     #plt.semilogy(range(2,6), L2_err)
     plt.loglog(range(deg_start, deg_end, deg_step), L2_err)
     plt.xlabel('degree')
