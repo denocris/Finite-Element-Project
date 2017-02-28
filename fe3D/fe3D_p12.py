@@ -2,7 +2,10 @@ from numpy import *
 from numpy.polynomial.legendre import leggauss
 from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
+import time
+
 import lagfunc as lf
+
 
 import scipy.sparse.linalg
 
@@ -18,9 +21,6 @@ def FiniteElem3D(degree, dim, my_f):
 
     lag_bas=[]
     lag_bas_deriv=[]
-    N = []
-    V = []
-    V_prime=[]
 
     #lagrangian base per i punti chebichev
     for i in range(len(cheb)):
@@ -72,17 +72,35 @@ def FiniteElem3D(degree, dim, my_f):
     # ---------- Direct Method -------------------------
     print "Direct Method ..."
 
+    start = time.time()
     u_fe_dir = linalg.solve( A + M, rhs)
+    end = time.time()
+    time_dir = end - start
+    t_dir.append(time_dir)
 
-    # ---------- Iterative Conjugate Gradient ----------
-    print "Iteractive Method ..."
+    # ---------- Iterative Conjugate Gradient without Prec----------
+    print "Iteractive Method without Preconditioner..."
 
-    P = diag( diag(A + M) ) # Preconditioner
+    start = time.time()
+    u_fe_iter_noprec = scipy.sparse.linalg.cg( A + M, rhs, tol = 1e-10)
+    end = time.time()
+    time_iter_noprec = end - start
+    t_iter_noprec.append(time_iter_noprec)
 
-    invP = linalg.inv(P)
+    u_fe_iter_noprec = array(u_fe_iter_noprec[0])
 
-    u_fe_iter = scipy.sparse.linalg.cg( A + M, rhs, M = invP)
-    u_fe_iter = array(u_fe_iter[0])
+    # ---------- Iterative Conjugate Gradient with Prec ----------
+    print "Iteractive Method with Preconditioner..."
+
+    start = time.time()
+    invP = diag(1./diag(A + M))
+    u_fe_iter_prec = scipy.sparse.linalg.cg( A + M, rhs, M = invP, tol = 1e-10)
+    end = time.time()
+
+    time_iter_prec = end - start
+    t_iter_prec.append(time_iter_prec)
+
+    u_fe_iter_prec = array(u_fe_iter_prec[0])
 
     # -------------------------------------------------
 
@@ -94,9 +112,10 @@ def FiniteElem3D(degree, dim, my_f):
     C = einsum('is, jk, nm -> skmijn', Vcheb, Vcheb, Vcheb, optimize=True)
 
     sol_dir = einsum('skmijn, ijn', C, u_fe_dir.reshape((n, n, n)), optimize=True)
-    sol_iter = einsum('skmijn, ijn', C, u_fe_iter.reshape((n, n, n)), optimize=True)
+    sol_iter_prec = einsum('skmijn, ijn', C, u_fe_iter_prec.reshape((n, n, n)), optimize=True)
+    sol_iter_noprec = einsum('skmijn, ijn', C, u_fe_iter_noprec.reshape((n, n, n)), optimize=True)
 
-    return sol_dir.reshape(n,n,n), sol_iter.reshape(n,n,n)
+    return sol_dir.reshape(n,n,n), sol_iter_prec.reshape(n,n,n), sol_iter_noprec.reshape(n,n,n)
 
 if __name__ == "__main__":
 
@@ -105,27 +124,17 @@ if __name__ == "__main__":
     u_exact = lambda x,y,z: cos(pi*x)*cos(pi*y)*cos(pi*z)
     my_f = lambda x,y,z: (3*(pi**2) + 1)*cos(pi*y)*cos(pi*x)*cos(pi*z)
 
-    #--------- Plotting a section of our FE solution  --------
-
     dim = 3 # space dim of the problem
-    degree = 8 # degree of polynomial bases
-
-    u_fem_dir = FiniteElem3D(degree, dim, my_f)[0]
-
-    cheby = lf.chebyshev_nodes(degree+1)
-    X, Y = meshgrid(cheby,cheby)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection = '3d')
-    ax.plot_surface(X, Y, u_fem_dir[:,:,0], cmap = cm.jet)
-    #ax.plot_surface(X, Y, u_fem_iter[:,:,0], cmap = cm.jet)
-    #plt.show()
-
-    # --------------- Error Computation ---------------------
+    # --------------- Error Computation and Timing ---------------------
 
     L2_err_dir = []
     L2_err_iter = []
     L2_err_match = []
+
+
+    t_dir = [] # time direct method
+    t_iter_prec = [] # time iteractive method with preconditioner
+    t_iter_noprec = [] # time iteractive method without preconditioner
 
     deg_start = 2
     deg_end = 18
@@ -137,10 +146,12 @@ if __name__ == "__main__":
 
         cheb = lf.chebyshev_nodes(deg+1)
 
-        u_fem_dir = FiniteElem3D(deg, dim, my_f)[0]
+        FE3D = FiniteElem3D(deg, dim, my_f)
+
+        u_fem_dir = FE3D[0]
         u_fem_dir = u_fem_dir.reshape(len(cheb)**3,)
 
-        u_fem_iter = FiniteElem3D(deg, dim, my_f)[1]
+        u_fem_iter = FE3D[1]
         u_fem_iter = u_fem_iter.reshape(len(cheb)**3,)
 
         for x in cheb:
@@ -152,9 +163,8 @@ if __name__ == "__main__":
 
         L2_err_dir.append(linalg.norm(u_ext_chebp - u_fem_dir, ord=2))
         L2_err_iter.append(linalg.norm(u_ext_chebp - u_fem_iter, ord=2))
-        L2_err_match.append(linalg.norm(u_fem_dir - u_fem_iter, ord=2))
+        #L2_err_match.append(linalg.norm(u_fem_dir - u_fem_iter, ord=2))
 
-    #print L2_err
 
     plt.figure()
     plt.title('FE L2 error plot')
@@ -162,4 +172,30 @@ if __name__ == "__main__":
     plt.semilogy(range(deg_start, deg_end, deg_step), L2_err_iter, 'g')
     plt.xlabel('degree')
     plt.ylabel('L2 error')
+
+    plt.figure()
+    plt.title('Timing')
+    plt.plot(range(deg_start, deg_end, deg_step), t_dir, 'b')
+    plt.plot(range(deg_start, deg_end, deg_step), t_iter_prec, 'g')
+    plt.plot(range(deg_start, deg_end, deg_step), t_iter_noprec, 'r')
+    plt.xlabel('degree')
+    plt.ylabel('Time')
     plt.show()
+
+
+        #--------- Plotting a section of our FE solution  --------
+
+    #degree = 8 # degree of polynomial bases
+
+    #u_fem_dir = FiniteElem3D(degree, dim, my_f)[0]
+
+    #print t_dir
+
+    #cheby = lf.chebyshev_nodes(degree+1)
+    #X, Y = meshgrid(cheby,cheby)
+
+    #fig = plt.figure()
+    #ax = fig.add_subplot(111, projection = '3d')
+    #ax.plot_surface(X, Y, u_fem_dir[:,:,0], cmap = cm.jet)
+    #ax.plot_surface(X, Y, u_fem_iter[:,:,0], cmap = cm.jet)
+    #plt.show()

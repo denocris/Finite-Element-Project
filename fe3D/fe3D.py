@@ -4,9 +4,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
 import lagfunc as lf
 
-# import cProfile
-# import re
-# cProfile.run('re.compile("foo|bar")')
 
 
 def solver3D(degree, dim, my_f):
