@@ -4,12 +4,10 @@ from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
 import lagfunc as lf
 
-# import cProfile
-# import re
-# cProfile.run('re.compile("foo|bar")')
+import scipy.sparse.linalg
 
 
-def solver3D(degree, dim, my_f):
+def FiniteElem3D(degree, dim, my_f):
     cheb = lf.chebyshev_nodes(degree+1) #Lista nodi chebichev
 
     n = degree + 1 # Dim poly space
@@ -20,6 +18,7 @@ def solver3D(degree, dim, my_f):
 
     lag_bas=[]
     lag_bas_deriv=[]
+    N = []
     V = []
     V_prime=[]
 
@@ -27,7 +26,6 @@ def solver3D(degree, dim, my_f):
     for i in range(len(cheb)):
         lag_bas.append(lf.lagrange_basis(cheb,i))
         lag_bas_deriv.append(lf.lagrange_basis_derivatives(cheb,i))
-
 
     Vq = zeros((n, len(q)))
     Vpq = zeros((n, len(q)))
@@ -37,18 +35,7 @@ def solver3D(degree, dim, my_f):
         Vq[i] = lag_bas[i](q)
         Vpq[i] = lag_bas_deriv[i](q)
 
-    #VVV    = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vq, optimize=True)
-    #VVVp   = einsum('ij,kl,nm -> inkljm', Vq, Vq, Vpq, optimize=True)
-    #VVpV   = einsum('ij,kl,nm -> inkljm', Vq, Vpq, Vq, optimize=True)
-    #VpVV   = einsum('ij,kl,nm -> inkljm', Vpq, Vq, Vq, optimize=True)
-
-    #VVV  = reshape(VVV,  (prod(VVV.shape[:dim]),  prod(VVV.shape[dim:])))
-    #VVVp = reshape(VVVp, (prod(VVVp.shape[:dim]), prod(VVVp.shape[dim:])))
-    #VVpV = reshape(VVpV, (prod(VVpV.shape[:dim]), prod(VVpV.shape[dim:])))
-    #VpVV = reshape(VpVV, (prod(VpVV.shape[:dim]), prod(VpVV.shape[dim:])))
-
-    #W = einsum('i,j,k -> ijk', w, w, w, optimize=True)
-    #W = reshape(W, (prod(W.shape[:dim])))
+    # -------------------------------------------------
 
     latticeq_points = array([[[[qx,qy,qz] for qz in q] for qy in q ] for qx in q])
     latticeq_points = latticeq_points.reshape(len(q)*len(q)*len(q),dim)
@@ -82,10 +69,22 @@ def solver3D(degree, dim, my_f):
     M = M.reshape(n**3,n**3)
     rhs = rhs.reshape(n**3)
 
-    # -------------------------------------------------
-    print "Solving linear system..."
-    u_fe = linalg.solve( A + M, rhs)
+    # ---------- Direct Method -------------------------
+    print "Direct Method ..."
 
+    u_fe_dir = linalg.solve( A + M, rhs)
+
+    # ---------- Iterative Conjugate Gradient ----------
+    print "Iteractive Method ..."
+
+    P = diag( diag(A + M) ) # Preconditioner
+
+    invP = linalg.inv(P)
+
+    u_fe_iter = scipy.sparse.linalg.cg( A + M, rhs, M = invP)
+    u_fe_iter = array(u_fe_iter[0])
+
+    # -------------------------------------------------
 
     Vcheb = zeros((n, len(cheb)))
 
@@ -94,9 +93,10 @@ def solver3D(degree, dim, my_f):
 
     C = einsum('is, jk, nm -> skmijn', Vcheb, Vcheb, Vcheb, optimize=True)
 
-    sol = einsum('skmijn, ijn', C, u_fe.reshape((n, n, n)), optimize=True)
+    sol_dir = einsum('skmijn, ijn', C, u_fe_dir.reshape((n, n, n)), optimize=True)
+    sol_iter = einsum('skmijn, ijn', C, u_fe_iter.reshape((n, n, n)), optimize=True)
 
-    return sol.reshape(n,n,n)
+    return sol_dir.reshape(n,n,n), sol_iter.reshape(n,n,n)
 
 if __name__ == "__main__":
 
@@ -110,22 +110,25 @@ if __name__ == "__main__":
     dim = 3 # space dim of the problem
     degree = 8 # degree of polynomial bases
 
-    u_fem = solver3D(degree, dim, my_f)
+    u_fem_dir = FiniteElem3D(degree, dim, my_f)[0]
 
     cheby = lf.chebyshev_nodes(degree+1)
     X, Y = meshgrid(cheby,cheby)
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection = '3d')
-    ax.plot_surface(X, Y, u_fem[:,:,0], cmap = cm.jet)
-    plt.show()
+    ax.plot_surface(X, Y, u_fem_dir[:,:,0], cmap = cm.jet)
+    #ax.plot_surface(X, Y, u_fem_iter[:,:,0], cmap = cm.jet)
+    #plt.show()
 
     # --------------- Error Computation ---------------------
 
-    L2_err = []
+    L2_err_dir = []
+    L2_err_iter = []
+    L2_err_match = []
 
     deg_start = 2
-    deg_end = 12
+    deg_end = 18
     deg_step = 1
 
     for deg in range(deg_start, deg_end, deg_step):
@@ -134,8 +137,11 @@ if __name__ == "__main__":
 
         cheb = lf.chebyshev_nodes(deg+1)
 
-        u_fem = solver3D(deg, dim, my_f)
-        u_fem = u_fem.reshape(len(cheb)**3,)
+        u_fem_dir = FiniteElem3D(deg, dim, my_f)[0]
+        u_fem_dir = u_fem_dir.reshape(len(cheb)**3,)
+
+        u_fem_iter = FiniteElem3D(deg, dim, my_f)[1]
+        u_fem_iter = u_fem_iter.reshape(len(cheb)**3,)
 
         for x in cheb:
             for y in cheb:
@@ -144,14 +150,16 @@ if __name__ == "__main__":
 
         u_ext_chebp = array(u_ext_chebp)
 
-        L2_err.append(linalg.norm(u_ext_chebp - u_fem, ord=2))
+        L2_err_dir.append(linalg.norm(u_ext_chebp - u_fem_dir, ord=2))
+        L2_err_iter.append(linalg.norm(u_ext_chebp - u_fem_iter, ord=2))
+        L2_err_match.append(linalg.norm(u_fem_dir - u_fem_iter, ord=2))
 
-
-    print L2_err
+    #print L2_err
 
     plt.figure()
-    plt.title('FE Direct Method - L2 error plot')
-    plt.semilogy(range(deg_start, deg_end, deg_step), L2_err)
+    plt.title('FE L2 error plot')
+    plt.semilogy(range(deg_start, deg_end, deg_step), L2_err_dir, 'b')
+    plt.semilogy(range(deg_start, deg_end, deg_step), L2_err_iter, 'g')
     plt.xlabel('degree')
     plt.ylabel('L2 error')
     plt.show()
