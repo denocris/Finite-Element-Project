@@ -176,20 +176,20 @@ if __name__ == "__main__":
 
     # ---------- Saving Data Errors ----------------
 
-    np.savetxt('Data_err/L2error_degstart%(deg_start)d_degend%(deg_end)d_dir.txt'
+    savetxt('Data_err/L2error_degstart%(deg_start)d_degend%(deg_end)d_dir.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},L2_err_dir)
-    np.savetxt('Data_err/L2error_degstart%(deg_start)d_degend%(deg_end)d_prec.txt'
+    savetxt('Data_err/L2error_degstart%(deg_start)d_degend%(deg_end)d_prec.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},L2_err_iter_prec)
-    np.savetxt('Data_err/L2error_degstart%(deg_start)d_degend%(deg_end)d_noprec.txt'
+    savetxt('Data_err/L2error_degstart%(deg_start)d_degend%(deg_end)d_noprec.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},L2_err_iter_noprec)
 
     # ---------- Saving Data Timing ----------------
 
-    np.savetxt('Data_time/Time_degstart%(deg_start)d_degend%(deg_end)d_dir.txt'
+    savetxt('Data_time/Time_degstart%(deg_start)d_degend%(deg_end)d_dir.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},t_dir )
-    np.savetxt('Data_time/Time_degstart%(deg_start)d_degend%(deg_end)d_prec.txt'
+    savetxt('Data_time/Time_degstart%(deg_start)d_degend%(deg_end)d_prec.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},t_iter_prec)
-    np.savetxt('Data_time/Time_degstart%(deg_start)d_degend%(deg_end)d_noprec.txt'
+    savetxt('Data_time/Time_degstart%(deg_start)d_degend%(deg_end)d_noprec.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},t_iter_noprec)
 
 
