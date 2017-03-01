@@ -1,11 +1,10 @@
 from numpy import *
 from numpy.polynomial.legendre import leggauss
-from mpl_toolkits.mplot3d import Axes3D
+#from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
 import time
 
 import lagfunc as lf
-
 
 import scipy.sparse.linalg
 
@@ -148,7 +147,7 @@ if __name__ == "__main__":
     t_iter_noprec = [] # time iteractive method without preconditioner
 
     deg_start = 2
-    deg_end = 32
+    deg_end = 22
     deg_step = 1
 
     for deg in range(deg_start, deg_end, deg_step):
@@ -201,24 +200,22 @@ if __name__ == "__main__":
     % {"deg_start":deg_start,"deg_end":deg_end},t_iter_noprec)
 
 
-    plt.figure()
-    plt.title('L2 error')
-    #plt.semilogy(range(deg_start, deg_end, deg_step), L2_err_dir, 'b', label='Dir')
-    plt.semilogy(range(deg_start, deg_end, deg_step), L2_err_iter_prec, 'g', label='Iter with Prec')
-    plt.semilogy(range(deg_start, deg_end, deg_step), L2_err_iter_noprec, 'r', label='Iter without Prec')
-    plt.xlabel('degree')
-    plt.ylabel('L2 error')
-    plt.legend(loc='lower left')
-
-    plt.figure()
-    plt.title('Timing different methods')
-    #plt.plot(range(deg_start, deg_end, deg_step), t_dir, 'b', label='Dir')
-    plt.plot(range(deg_start, deg_end, deg_step), t_iter_prec, 'g', label='Iter with Prec')
-    plt.plot(range(deg_start, deg_end, deg_step), t_iter_noprec, 'r', label='Iter without Prec')
-    plt.xlabel('degree')
-    plt.ylabel('Time')
-    plt.legend(loc='upper left')
-    plt.show()
+    # plt.figure()
+    # plt.title('L2 error')
+    # plt.semilogy(range(deg_start, deg_end, deg_step), L2_err_iter_prec, 'g', label='Iter with Prec')
+    # plt.semilogy(range(deg_start, deg_end, deg_step), L2_err_iter_noprec, 'r', label='Iter without Prec')
+    # plt.xlabel('degree')
+    # plt.ylabel('L2 error')
+    # plt.legend(loc='lower left')
+    #
+    # plt.figure()
+    # plt.title('Timing different methods')
+    # plt.plot(range(deg_start, deg_end, deg_step), t_iter_prec, 'g', label='Iter with Prec')
+    # plt.plot(range(deg_start, deg_end, deg_step), t_iter_noprec, 'r', label='Iter without Prec')
+    # plt.xlabel('degree')
+    # plt.ylabel('Time')
+    # plt.legend(loc='upper left')
+    # plt.show()
 
 
         #--------- Plotting a section of our FE solution  --------
