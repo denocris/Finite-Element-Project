@@ -45,18 +45,38 @@ def FiniteElem3D(degree, dim, my_f):
     lpoint_z = array([latticeq_points[i,2] for i in range(len(latticeq_points))])
 
     # -------------------------------------------------
-    print "Starting einsum A and M..."
-    Atmp = einsum('jq, iq, q -> ji', Vpq, Vpq, w, optimize=True)
-    Mtmp = einsum('jq, iq, q -> ji', Vq, Vq, w, optimize=True)
+    print "Starting Matrix Free..."
+    A1mf = einsum('jq, iq, q -> ji', Vpq, Vpq, w, optimize=True)
+    M1mf = einsum('jq, iq, q -> ji', Vq, Vq, w, optimize=True)
 
-    A = einsum('il, jm, kn -> ijklmn', Atmp, Mtmp, Mtmp, optimize=True)
-    A += einsum('il, jm, kn -> ijklmn', Mtmp, Atmp, Mtmp, optimize=True)
-    A += einsum('il, jm, kn -> ijklmn', Mtmp, Mtmp, Atmp, optimize=True)
+    A = einsum('ii, jj, kk -> ijk', A1mf, M1mf, M1mf, optimize=True)
+    A += einsum('ii, jj, kk -> ijk', M1mf, A1mf, M1mf, optimize=True)
+    A += einsum('ii, jj, kk -> ijk', M1mf, M1mf, A1mf, optimize=True)
 
-    M = einsum('il, jm, kn -> ijklmn', Mtmp, Mtmp, Mtmp, optimize=True)
+    M = einsum('ii, jj, kk -> ijk', M1mf, M1mf, M1mf, optimize=True)
 
-    # -------------------------------------------------
-    print "Starting einsum rhs..."
+    def matrix_free_lhs(u_fe):
+        u_fe = u_fe.reshape((n,n,n))
+
+        u_tmp = np.einsum('iq, qjl -> ijl', M1mf, u_fe, optimize=True)
+        u_tmp = np.einsum('jq, iql -> ijl', M1mf, u_tmp, optimize=True)
+        u = np.einsum('kq, ijq -> ijk', M1mf, u_tmp, optimize=True)
+
+        u_tmp = np.einsum('iq, qjl -> ijl', A1mf, u_fe, optimize=True)
+        u_tmp = np.einsum('jq, iql -> ijl', M1mf, u_tmp, optimize=True)
+        u += np.einsum('kq, ijq -> ijk', M1mf, u_tmp, optimize=True)
+
+        u_tmp = np.einsum('iq, qjl -> ijl', M1mf, u_fe, optimize=True)
+        u_tmp = np.einsum('jq, iql -> ijl', A1mf, u_tmp, optimize=True)
+        u += np.einsum('kq, ijq -> ijk', M1mf, u_tmp, optimize=True)
+
+        u_tmp = np.einsum('iq, qjl -> ijl', M1mf, u_fe, optimize=True)
+        u_tmp = np.einsum('jq, iql -> ijl', M1mf, u_tmp, optimize=True)
+        u += np.einsum('kq, ijq -> ijk', A1mf, u_tmp, optimize=True)
+        return u.reshape((n**3,))
+
+    MF = scipy.sparse.linalg.LinearOperator( (n**3,n**3), matvec=matrix_free_lhs)
+
     my_f = array(my_f(lpoint_x,lpoint_y,lpoint_z)).reshape(n,n,n)
 
     rhs = einsum('ijk, li, i -> jkl', my_f, Vq, w, optimize=True)
@@ -65,23 +85,14 @@ def FiniteElem3D(degree, dim, my_f):
 
     # -------------------------------------------------
 
-    A = A.reshape(n**3,n**3)
-    M = M.reshape(n**3,n**3)
+    A = A.reshape(n**3,)
+    M = M.reshape(n**3,)
     rhs = rhs.reshape(n**3)
-    #---------- Direct Method -------------------------
-    print "Direct Method ..."
 
-    start = time.time()
-    u_fe_dir = linalg.solve( A + M, rhs)
-    end = time.time()
-    time_dir = end - start
-    t_dir.append(time_dir)
-
-    # ---------- Iterative Conjugate Gradient without Prec----------
     print "Iteractive Method without Preconditioner..."
 
     start = time.time()
-    u_fe_iter_noprec = scipy.sparse.linalg.cg( A + M, rhs, M = identity(len(A)), tol = 1e-10)
+    u_fe_iter_noprec = scipy.sparse.linalg.cg( MF, rhs, x0=None, M = identity(n**3), tol = 1e-10)
     end = time.time()
     time_iter_noprec = end - start
     t_iter_noprec.append(time_iter_noprec)
@@ -92,8 +103,9 @@ def FiniteElem3D(degree, dim, my_f):
     print "Iteractive Method with Preconditioner..."
 
     start = time.time()
-    invP = diag(1./diag(A + M))
-    u_fe_iter_prec = scipy.sparse.linalg.cg( A + M, rhs, M = invP, tol = 1e-10)
+    #invP = diag(1./diag(M))
+    invP = diag(1./(A + M))
+    u_fe_iter_prec = scipy.sparse.linalg.cg( MF, rhs, x0=None, M = invP, tol = 1e-10)
     end = time.time()
 
     time_iter_prec = end - start
@@ -110,11 +122,11 @@ def FiniteElem3D(degree, dim, my_f):
 
     C = einsum('is, jk, nm -> skmijn', Vcheb, Vcheb, Vcheb, optimize=True)
 
-    sol_dir = einsum('skmijn, ijn', C, u_fe_dir.reshape((n, n, n)), optimize=True)
+    #sol_dir = einsum('skmijn, ijn', C, u_fe_dir.reshape((n, n, n)), optimize=True)
     sol_iter_prec = einsum('skmijn, ijn', C, u_fe_iter_prec.reshape((n, n, n)), optimize=True)
     sol_iter_noprec = einsum('skmijn, ijn', C, u_fe_iter_noprec.reshape((n, n, n)), optimize=True)
 
-    return sol_dir.reshape(n,n,n), sol_iter_prec.reshape(n,n,n), sol_iter_noprec.reshape(n,n,n)
+    return sol_iter_prec.reshape(n,n,n), sol_iter_noprec.reshape(n,n,n)
 
 if __name__ == "__main__":
 
@@ -126,17 +138,17 @@ if __name__ == "__main__":
     dim = 3 # space dim of the problem
     # --------------- Error Computation and Timing ---------------------
 
-    L2_err_dir = []
+    #L2_err_dir = []
     L2_err_iter_prec = []
     L2_err_iter_noprec = []
 
 
-    t_dir = [] # time direct method
+    #t_dir = [] # time direct method
     t_iter_prec = [] # time iteractive method with preconditioner
     t_iter_noprec = [] # time iteractive method without preconditioner
 
     deg_start = 2
-    deg_end = 12
+    deg_end = 32
     deg_step = 1
 
     for deg in range(deg_start, deg_end, deg_step):
@@ -146,18 +158,17 @@ if __name__ == "__main__":
         cheb = lf.chebyshev_nodes(deg+1)
 
         start = time.time()
+
         FE3D = FiniteElem3D(deg, dim, my_f)
+
         end = time.time()
 
         tot = end - start
 
-        u_fem_dir = FE3D[0]
-        u_fem_dir = u_fem_dir.reshape(len(cheb)**3,)
-
-        u_fem_iter_prec = FE3D[1]
+        u_fem_iter_prec = FE3D[0]
         u_fem_iter_prec = u_fem_iter_prec.reshape(len(cheb)**3,)
 
-        u_fem_iter_noprec = FE3D[2]
+        u_fem_iter_noprec = FE3D[1]
         u_fem_iter_noprec = u_fem_iter_noprec.reshape(len(cheb)**3,)
 
 
@@ -168,30 +179,26 @@ if __name__ == "__main__":
 
         u_ext_chebp = array(u_ext_chebp)
 
-        L2_err_dir.append(linalg.norm(u_ext_chebp - u_fem_dir, ord=2))
+        #L2_err_dir.append(linalg.norm(u_ext_chebp - u_fem_dir, ord=2))
         L2_err_iter_prec.append(linalg.norm(u_ext_chebp - u_fem_iter_prec, ord=2))
         L2_err_iter_noprec.append(linalg.norm(u_ext_chebp - u_fem_iter_noprec, ord=2))
+
         print "---------------------------------", tot
 
 
     # ---------- Saving Data Errors ----------------
 
-    np.savetxt('Data_err/L2error_degstart%(deg_start)d_degend%(deg_end)d_dir.txt'
-    % {"deg_start":deg_start,"deg_end":deg_end},L2_err_dir)
-    np.savetxt('Data_err/L2error_degstart%(deg_start)d_degend%(deg_end)d_prec.txt'
+    np.savetxt('Data_err_matfree/L2error_degstart%(deg_start)d_degend%(deg_end)d_prec.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},L2_err_iter_prec)
-    np.savetxt('Data_err/L2error_degstart%(deg_start)d_degend%(deg_end)d_noprec.txt'
+    np.savetxt('Data_err_matfree/L2error_degstart%(deg_start)d_degend%(deg_end)d_noprec.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},L2_err_iter_noprec)
 
     # ---------- Saving Data Timing ----------------
 
-    np.savetxt('Data_time/Time_degstart%(deg_start)d_degend%(deg_end)d_dir.txt'
-    % {"deg_start":deg_start,"deg_end":deg_end},t_dir )
-    np.savetxt('Data_time/Time_degstart%(deg_start)d_degend%(deg_end)d_prec.txt'
+    np.savetxt('Data_time_matfree/Time_degstart%(deg_start)d_degend%(deg_end)d_prec.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},t_iter_prec)
-    np.savetxt('Data_time/Time_degstart%(deg_start)d_degend%(deg_end)d_noprec.txt'
+    np.savetxt('Data_time_matfree/Time_degstart%(deg_start)d_degend%(deg_end)d_noprec.txt'
     % {"deg_start":deg_start,"deg_end":deg_end},t_iter_noprec)
-
 
 
     plt.figure()
