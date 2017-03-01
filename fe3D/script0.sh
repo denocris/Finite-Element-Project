@@ -3,4 +3,4 @@
 
 cd $PBS_O_WORKDIR
 
-python fe3D_p12.py 
+python fe3D_matfree.py
