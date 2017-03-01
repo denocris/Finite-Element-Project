@@ -57,21 +57,21 @@ def FiniteElem3D(degree, dim, my_f):
     def matrix_free_lhs(u_fe):
         u_fe = u_fe.reshape((n,n,n))
 
-        u_tmp = np.einsum('iq, qjl -> ijl', M1mf, u_fe, optimize=True)
-        u_tmp = np.einsum('jq, iql -> ijl', M1mf, u_tmp, optimize=True)
-        u = np.einsum('kq, ijq -> ijk', M1mf, u_tmp, optimize=True)
+        u_tmp = einsum('iq, qjl -> ijl', M1mf, u_fe, optimize=True)
+        u_tmp = einsum('jq, iql -> ijl', M1mf, u_tmp, optimize=True)
+        u = einsum('kq, ijq -> ijk', M1mf, u_tmp, optimize=True)
 
-        u_tmp = np.einsum('iq, qjl -> ijl', A1mf, u_fe, optimize=True)
-        u_tmp = np.einsum('jq, iql -> ijl', M1mf, u_tmp, optimize=True)
-        u += np.einsum('kq, ijq -> ijk', M1mf, u_tmp, optimize=True)
+        u_tmp = einsum('iq, qjl -> ijl', A1mf, u_fe, optimize=True)
+        u_tmp = einsum('jq, iql -> ijl', M1mf, u_tmp, optimize=True)
+        u += einsum('kq, ijq -> ijk', M1mf, u_tmp, optimize=True)
 
-        u_tmp = np.einsum('iq, qjl -> ijl', M1mf, u_fe, optimize=True)
-        u_tmp = np.einsum('jq, iql -> ijl', A1mf, u_tmp, optimize=True)
-        u += np.einsum('kq, ijq -> ijk', M1mf, u_tmp, optimize=True)
+        u_tmp = einsum('iq, qjl -> ijl', M1mf, u_fe, optimize=True)
+        u_tmp = einsum('jq, iql -> ijl', A1mf, u_tmp, optimize=True)
+        u += einsum('kq, ijq -> ijk', M1mf, u_tmp, optimize=True)
 
-        u_tmp = np.einsum('iq, qjl -> ijl', M1mf, u_fe, optimize=True)
-        u_tmp = np.einsum('jq, iql -> ijl', M1mf, u_tmp, optimize=True)
-        u += np.einsum('kq, ijq -> ijk', A1mf, u_tmp, optimize=True)
+        u_tmp = einsum('iq, qjl -> ijl', M1mf, u_fe, optimize=True)
+        u_tmp = einsum('jq, iql -> ijl', M1mf, u_tmp, optimize=True)
+        u += einsum('kq, ijq -> ijk', A1mf, u_tmp, optimize=True)
         return u.reshape((n**3,))
 
     MF = scipy.sparse.linalg.LinearOperator( (n**3,n**3), matvec=matrix_free_lhs)
