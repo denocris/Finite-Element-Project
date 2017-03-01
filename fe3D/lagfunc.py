@@ -26,6 +26,7 @@ def lagrange_basis_derivatives(nodes, i):
         return L_deriv
     return func
 
+
 # ------------------------------------------------
 
 # def lagrange_basis(q,i):
