@@ -1,7 +1,7 @@
 from numpy import *
 from numpy.polynomial.legendre import leggauss
 #from mpl_toolkits.mplot3d import Axes3D
-from pylab import *
+#from pylab import *
 import time
 
 import lagfunc as lf
