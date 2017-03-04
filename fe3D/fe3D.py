@@ -136,7 +136,7 @@ if __name__ == "__main__":
     t_iter_noprec = [] # time iteractive method without preconditioner
 
     deg_start = 2
-    deg_end = 22
+    deg_end = 18
     deg_step = 1
 
     for deg in range(deg_start, deg_end, deg_step):
