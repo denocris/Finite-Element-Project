@@ -1,6 +1,8 @@
 ##### Finite Element in 3D
 
-The main files are:
+
+
+The final version is in the master branch. The main files are:
 
 - fe3D.py (normal implementation)
 - fe3D_matfree.py (matrix free implementation)
